@@ -68,4 +68,62 @@ class LD_Helper
     {
 
     }
+    public static function get_quiz_activities_for_user($user_id,$course_ids)
+    {
+        $results = [];
+        foreach ($course_ids as $course_id) {
+            $quizzes_data = [];
+
+            // Get course-level quizzes
+            $course_quizzes = learndash_get_course_quiz_list($course_id);
+
+            // Get lesson-level quizzes
+            $lessons = learndash_get_lesson_list($course_id);
+            foreach ($lessons as $lesson) {
+                $lesson_quizzes = learndash_get_lesson_quiz_list($lesson->ID);
+                $course_quizzes = array_merge($course_quizzes, $lesson_quizzes);
+            }
+
+            foreach ($course_quizzes as $quiz) {
+                $quiz_id = (int)$quiz['id'];
+                $attempts_data = [];
+
+                $attempts = learndash_get_user_quiz_attempts($user_id, $quiz_id);
+
+                foreach ($attempts as $attempt) {
+                    $meta = learndash_get_activity_meta_fields($attempt->activity_id);
+
+                    if (!isset($meta['percentage']) || $meta['percentage'] === '') {
+                        continue;
+                    }
+
+                    $attempts_data[] = [
+                        'score'      => isset($meta['points']) ? (int)$meta['points'] : 0,
+                        'questions'  => isset($meta['total_points']) ? (int)$meta['total_points'] : 0,
+                        'percentage' => (float)$meta['percentage'],
+                        'date'       => date("d-m-Y", $meta['completed'])
+                    ];
+                }
+
+                // Skip quizzes with no attempts
+                if (!empty($attempts_data)) {
+                    $quizzes_data[] = [
+                        'name'     => $quiz['post']->post_title,
+                        'attempts' => $attempts_data,
+                    ];
+                }
+            }
+
+            if (!empty($quizzes_data)) {
+                $results[] = [
+                    'courseTitle' => get_the_title($course_id),
+                    'post_url' => get_permalink($course_id),
+                    'quizzes'     => $quizzes_data,
+                ];
+            }
+        }
+
+        return $results;
+    }
+
 }

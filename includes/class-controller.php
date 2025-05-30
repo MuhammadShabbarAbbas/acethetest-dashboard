@@ -26,6 +26,7 @@ class Controller
 
 
         add_action('wp_ajax_attd_get_test_scores', array($this, 'get_test_scores'));
+        add_action('wp_ajax_attd_get_test_activities', array($this, 'get_test_activities'));
     }
 
     public function ajax_get_study_hours()
@@ -45,6 +46,12 @@ class Controller
     {
         $results = LD_Helper::get_latest_test_scores_for_user(get_current_user_id(), [889]);
         ajax_return(true, 'Quiz Stats Fetched', $results);
+    }
+
+    public function get_test_activities()
+    {
+        $results = LD_Helper::get_quiz_activities_for_user(get_current_user_id(),[889,261,259]);
+        ajax_return(true, 'Activities Fetched', $results);
     }
 
 
